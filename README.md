@@ -1,206 +1,222 @@
 # HCMUS Auto DKHP
 
-Userscript Tampermonkey hỗ trợ thao tác đăng ký học phần trên portal HCMUS: tự vào trang đăng ký, tự tick lớp học phần theo danh sách cấu hình, tự submit khi đến giờ và tự reload khi cần.
+<p align="center">
+  <img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=700&size=24&duration=2600&pause=700&color=0F766E&center=true&vCenter=true&width=900&lines=HCMUS+Course+Registration+Userscript;Tampermonkey+%7C+JavaScript+%7C+Safe+Defaults;Auto+Reload+%E2%86%92+Target+Match+%E2%86%92+Optional+Submit" alt="Animated HCMUS Auto DKHP title" />
+</p>
 
-> Script này không bypass CAPTCHA. CAPTCHA vẫn phải được nhập hoặc xác nhận thủ công theo đúng giao diện portal.
+<p align="center">
+  <a href="https://github.com/lhlizdabezt/hcmus-auto-dkhp/releases/latest">
+    <img src="https://img.shields.io/github/v/release/lhlizdabezt/hcmus-auto-dkhp?style=for-the-badge&logo=github&label=Release" alt="Latest release" />
+  </a>
+  <a href="https://github.com/lhlizdabezt/hcmus-auto-dkhp/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/lhlizdabezt/hcmus-auto-dkhp?style=for-the-badge&color=0f766e" alt="License" />
+  </a>
+  <a href="https://www.tampermonkey.net/">
+    <img src="https://img.shields.io/badge/Tampermonkey-Userscript-00485B?style=for-the-badge&logo=tampermonkey&logoColor=white" alt="Tampermonkey userscript" />
+  </a>
+  <a href="https://new-portal2.hcmus.edu.vn/">
+    <img src="https://img.shields.io/badge/HCMUS-Portal-2563EB?style=for-the-badge" alt="HCMUS portal" />
+  </a>
+</p>
 
-## Tính năng chính
+<p align="center">
+  <b>Course-registration helper for the HCMUS portal.</b><br/>
+  Auto navigates, waits for a configured start time, reloads safely, matches target classes, ticks matched rows, and can optionally submit.
+</p>
 
-- Tự điều hướng từ portal sang trang đăng ký học phần.
-- Tự tick môn/lớp học phần theo mã môn, lớp và ca học đã cấu hình.
-- Có thể hẹn giờ bắt đầu đăng ký bằng `START_AT`.
-- Có chế độ tự submit và tự reload trang theo chu kỳ.
-- Có badge trạng thái trên màn hình với nút `Dừng` và `Reset`.
-- Chạy trực tiếp bằng Tampermonkey, không cần cài Node.js hoặc chạy server.
+> [!IMPORTANT]
+> This project does **not** bypass CAPTCHA, authentication, seat limits, portal policies, or any school-side validation. CAPTCHA and account authentication remain manual/official portal steps. Use responsibly.
 
-## Cài đặt nhanh
+## Why This Repo Looks Like This
 
-### 1. Cài Tampermonkey
+This repository is intentionally small and reviewable:
 
-Vào trang chính thức của Tampermonkey:
+- only the reusable Tampermonkey userscript is tracked;
+- saved portal HTML, ViewState, CAPTCHA state, cookies, session data, and local test snapshots are ignored;
+- public defaults are conservative: `AUTO_SUBMIT = false` and `AUTO_LOGIN = false`;
+- configuration is explicit at the top of the script, so behavior is easy to audit before running.
 
-https://www.tampermonkey.net/
+## Engineering Highlights
 
-Chọn đúng trình duyệt bạn đang dùng rồi cài extension Tampermonkey.
+| Area | Implementation signal |
+| --- | --- |
+| Browser automation | Tampermonkey userscript, `document-start`, DOM detection, stateful reload loop |
+| Course matching | normalized course code, class code, and schedule matching from portal tables |
+| Safe execution | manual CAPTCHA gate, stop/reset badge, heartbeat reload guard, opt-in submit |
+| UX | floating status badge with countdown, selected-course summary, stop/reset controls |
+| Maintainability | single-file JavaScript, no build system, no server, no external runtime dependency |
 
-Sau khi cài xong, kiểm tra trên thanh extension của trình duyệt có biểu tượng Tampermonkey và trạng thái đang bật.
+## Features
 
-### 2. Cài userscript
+- 🚀 Auto navigate from the HCMUS portal to the course-registration page.
+- ⏱ Wait until `START_AT` before attempting registration.
+- 🔁 Reload with jitter while waiting for course tables or target rows.
+- 🎯 Match target courses by `code`, `cls`, and `time`.
+- ✅ Tick matched classes automatically.
+- 🧯 Provide a floating badge with status, countdown, `Dừng`, and `Reset`.
+- 🔐 Optional login helper using browser `localStorage` only when `AUTO_LOGIN = true`.
+- 🧾 Optional submit only when `AUTO_SUBMIT = true`.
 
-Cách nhanh nhất:
+## Quick Install
 
-1. Mở link raw của script:
+1. Install [Tampermonkey](https://www.tampermonkey.net/) for your browser.
+2. Open the raw userscript:
 
-   https://raw.githubusercontent.com/lhlizdabezt/hcmus-auto-dkhp/main/tricker/HCMUS%20Auto%20DKHP%20-%20HK3%2023TC%20Safe-2.0.user.js
+   [Install HCMUS Auto DKHP](https://raw.githubusercontent.com/lhlizdabezt/hcmus-auto-dkhp/main/tricker/HCMUS%20Auto%20DKHP%20-%20HK3%2023TC%20Safe-2.0.user.js)
 
-2. Nếu Tampermonkey hiện màn hình cài đặt script, bấm `Install`.
-3. Vào `Tampermonkey Dashboard` để kiểm tra script `HCMUS Auto DKHP - HK3 23TC Safe` đang bật.
+3. When Tampermonkey opens the install screen, choose `Install`.
+4. Open `Tampermonkey Dashboard` and confirm `HCMUS Auto DKHP - HK3 23TC Safe` is enabled.
 
-Nếu trình duyệt chỉ hiện file text:
+If the browser shows plain text instead of the Tampermonkey installer:
 
-1. Mở `Tampermonkey Dashboard`.
-2. Bấm nút `+` hoặc `Create a new script`.
-3. Xóa nội dung mặc định.
-4. Copy toàn bộ nội dung trong file:
+1. Open `Tampermonkey Dashboard`.
+2. Choose `Create a new script`.
+3. Delete the default template.
+4. Paste the contents of [`tricker/HCMUS Auto DKHP - HK3 23TC Safe-2.0.user.js`](tricker/HCMUS%20Auto%20DKHP%20-%20HK3%2023TC%20Safe-2.0.user.js).
+5. Press `Ctrl + S`.
 
-   `tricker/HCMUS Auto DKHP - HK3 23TC Safe-2.0.user.js`
+## Configure Before Running
 
-5. Dán vào editor của Tampermonkey.
-6. Bấm `Ctrl + S` để lưu.
+Open the script in Tampermonkey and edit the config block near the top.
 
-## Cấu hình trước khi chạy
-
-Mở script trong Tampermonkey Dashboard, sau đó chỉnh các biến cấu hình ở đầu file.
-
-### Thời điểm bắt đầu
+### Start Time
 
 ```js
 const START_AT = "2026-06-01T08:00:00+07:00";
 ```
 
-Đổi ngày giờ này thành thời điểm mở đăng ký thật. Nên giữ định dạng ISO và múi giờ `+07:00`.
+Use the real registration opening time. Keep the ISO format and the Vietnam timezone offset `+07:00`.
 
-### Danh sách môn cần đăng ký
-
-Chỉnh trong `TARGET_COURSES`:
+### Target Courses
 
 ```js
 const TARGET_COURSES = [
-  {
-    code: "CSC10001",
-    cls: "22_1",
-    name: "Tên môn học",
-    time: "Thứ 2, tiết 1-3"
-  }
+  { code: "CSC10001", cls: "22_1", name: "Sample Course", time: "T2(1-3)" },
+  { code: "ETC10001", cls: "23DTV_CLC1", name: "Sample Lab", time: "T4(7-9)" },
 ];
 ```
 
-Ý nghĩa:
+Copy `code`, `cls`, and `time` directly from the portal to avoid whitespace, accent, or formatting mismatch.
 
-- `code`: mã môn học.
-- `cls`: mã lớp học phần hoặc nhóm lớp.
-- `name`: tên môn để dễ đọc log.
-- `time`: ca học, dùng để phân biệt khi có nhiều lớp trùng mã môn.
-
-Nên copy mã môn, lớp và ca học trực tiếp từ portal để tránh lệch dấu cách hoặc sai ký tự.
-
-### Tự submit
+### Submit Mode
 
 ```js
-const AUTO_SUBMIT = true;
+const AUTO_SUBMIT = false;
 ```
 
-- `true`: script sẽ tự bấm nút submit khi đã tick được môn phù hợp.
-- `false`: script chỉ tick môn, bạn tự kiểm tra rồi bấm submit thủ công.
+- `false`: tick matching classes only. You review and submit manually.
+- `true`: click the registration button after matching target rows.
 
-Khi test lần đầu, nên để `false`. Khi đã chắc cấu hình đúng thì đổi lại `true`.
+Recommended workflow: test with `AUTO_SUBMIT = false`; enable `true` only after you have verified the target list.
 
-### Tự reload
+### Reload Mode
 
 ```js
 const AUTO_RELOAD = true;
 const RELOAD_SECONDS = 3;
+const RELOAD_JITTER_MS = 1200;
 ```
 
-- `AUTO_RELOAD = true`: tự refresh trang khi chưa tới lượt hoặc chưa thấy môn.
-- `RELOAD_SECONDS`: số giây giữa các lần reload.
+Increase `RELOAD_SECONDS` to `5`, `8`, or `10` if the portal is slow or if you want a gentler refresh loop.
 
-Nếu portal lag hoặc bị reload quá nhanh, tăng `RELOAD_SECONDS` lên `5`, `8` hoặc `10`.
-
-### Tự login và tự chuyển trang
+### Login Helper
 
 ```js
-const AUTO_LOGIN = true;
+const AUTO_LOGIN = false;
 const AUTO_NAV_TO_DKHP = true;
 ```
 
-- `AUTO_LOGIN`: hỗ trợ điền thông tin đăng nhập đã lưu trong trình duyệt/localStorage.
-- `AUTO_NAV_TO_DKHP`: tự chuyển sang trang đăng ký học phần sau khi vào portal.
+`AUTO_LOGIN` is disabled by default. If enabled, credentials are stored in browser `localStorage` as plain text. Do not enable it on a shared machine.
 
-Không commit tài khoản, mật khẩu, cookie, file HTML portal hoặc dữ liệu session lên GitHub.
+## Runbook
 
-## Cách chạy khi tới giờ đăng ký
+1. Open the official portal: <https://new-portal2.hcmus.edu.vn/>.
+2. Sign in with your student account.
+3. Complete CAPTCHA manually if required.
+4. Navigate to `DangKyHocPhan.aspx`.
+5. Confirm the script badge appears.
+6. Keep one active portal tab open before `START_AT`.
+7. When the start time arrives, the script reloads, matches, ticks, and optionally submits depending on your config.
 
-1. Mở portal HCMUS:
+## Safety Checklist
 
-   https://new-portal2.hcmus.edu.vn/
+- [ ] `TARGET_COURSES` exactly matches the portal rows.
+- [ ] `START_AT` uses the real opening time and `+07:00`.
+- [ ] First test uses `AUTO_SUBMIT = false`.
+- [ ] No account, password, cookie, portal HTML, ViewState, CAPTCHA state, or session file is committed.
+- [ ] Only one browser tab runs the userscript unless you intentionally need otherwise.
 
-2. Đăng nhập tài khoản sinh viên.
-3. Nếu có CAPTCHA, xử lý CAPTCHA thủ công.
-4. Vào trang đăng ký học phần.
-5. Kiểm tra badge của script xuất hiện trên màn hình.
-6. Giữ tab đang mở trước thời điểm `START_AT`.
-7. Khi tới giờ, script sẽ reload/tick/submit theo cấu hình.
+## Troubleshooting
 
-Nếu đã bấm `Dừng` trên badge, bấm `Reset` hoặc vào Tampermonkey tắt rồi bật lại script trước khi chạy lại.
+### The script does not run
 
-## Kiểm tra sau khi cài
+- Confirm Tampermonkey is enabled.
+- Confirm the userscript is enabled in `Tampermonkey Dashboard`.
+- Refresh the portal page.
+- Check that the URL is under `new-portal2.hcmus.edu.vn` or `DangKyHocPhan.aspx`.
 
-Trước ngày đăng ký thật, nên test theo quy trình an toàn:
+### The script does not tick a course
 
-1. Đặt `AUTO_SUBMIT = false`.
-2. Đặt `START_AT` gần thời điểm hiện tại.
-3. Vào trang đăng ký học phần.
-4. Xem script có hiện badge và log trạng thái không.
-5. Kiểm tra script có tick đúng môn/lớp không.
-6. Khi mọi thứ đúng, đổi `AUTO_SUBMIT = true` cho lần chạy thật.
+- Re-copy `code`, `cls`, and `time` from the portal.
+- Check whether the target class is already registered.
+- If HCMUS changes the page HTML, table selectors may need an update.
 
-## Lỗi thường gặp
+### The portal keeps refreshing too fast
 
-### Không thấy script chạy
-
-- Kiểm tra Tampermonkey đã bật chưa.
-- Kiểm tra script có đang `Enabled` trong Dashboard không.
-- Refresh lại trang portal.
-- Kiểm tra URL có đúng trang `new-portal2.hcmus.edu.vn` hoặc `DangKyHocPhan.aspx` không.
-
-### Script không tick được môn
-
-- Kiểm tra lại `code`, `cls`, `time` trong `TARGET_COURSES`.
-- Copy lại thông tin trực tiếp từ portal.
-- Nếu portal đổi giao diện HTML, script có thể cần cập nhật selector.
-
-### Script bị reload quá nhanh
-
-Tăng thời gian reload:
+Set a slower interval:
 
 ```js
 const RELOAD_SECONDS = 8;
 ```
 
-Hoặc tắt tự reload:
+Or disable automatic reload:
 
 ```js
 const AUTO_RELOAD = false;
 ```
 
-### Bị kẹt ở CAPTCHA
+### CAPTCHA blocks progress
 
-Script không giải CAPTCHA. Hãy xử lý CAPTCHA thủ công, sau đó để script tiếp tục chạy.
+This is expected. The script pauses reload on the CAPTCHA gate so you can solve it manually. After passing CAPTCHA, the script continues on the registration page.
 
-### Muốn dừng khẩn cấp
+### Emergency stop
 
-- Bấm nút `Dừng` trên badge của script.
-- Hoặc tắt script trong Tampermonkey Dashboard.
-- Hoặc đóng tab portal.
+- Click `Dừng` on the badge.
+- Or disable the userscript in Tampermonkey.
+- Or close the portal tab.
 
-## Khuyến nghị an toàn
-
-- Test trước với `AUTO_SUBMIT = false`.
-- Không mở nhiều tab cùng chạy script nếu không cần thiết.
-- Không đẩy file HTML tải từ portal lên GitHub.
-- Không lưu cookie, token, tài khoản hoặc mật khẩu trong repo.
-- Tự chịu trách nhiệm khi dùng script trên hệ thống thật của trường.
-
-## Cấu trúc repo
+## Repository Structure
 
 ```text
 .
+├── .gitignore
+├── CHANGELOG.md
+├── LICENSE
 ├── README.md
 └── tricker/
     └── HCMUS Auto DKHP - HK3 23TC Safe-2.0.user.js
 ```
 
+## Release
+
+Latest release: [v4.3.0](https://github.com/lhlizdabezt/hcmus-auto-dkhp/releases/tag/v4.3.0)
+
+Install directly from the release-ready raw script:
+
+```text
+https://raw.githubusercontent.com/lhlizdabezt/hcmus-auto-dkhp/main/tricker/HCMUS%20Auto%20DKHP%20-%20HK3%2023TC%20Safe-2.0.user.js
+```
+
+## Author
+
+**Lương Hải Long**  
+Electronics & Telecommunications student, HCMUS  
+GitHub: [@lhlizdabezt](https://github.com/lhlizdabezt)
+
 ## License
 
-Project cá nhân phục vụ học tập và tự động hóa thao tác lặp lại. Hãy dùng có trách nhiệm.
+MIT License. See [LICENSE](LICENSE).
+
+## Disclaimer
+
+This is a personal educational automation project and is not affiliated with, endorsed by, or maintained by HCMUS. Use it only in ways that comply with school rules, portal policies, and your own responsibility.

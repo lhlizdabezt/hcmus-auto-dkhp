@@ -6,6 +6,8 @@
 # Keep repo metadata and docs.
 !.gitignore
 !README.md
+!CHANGELOG.md
+!LICENSE
 
 # Keep only the reusable userscript.
 !tricker/

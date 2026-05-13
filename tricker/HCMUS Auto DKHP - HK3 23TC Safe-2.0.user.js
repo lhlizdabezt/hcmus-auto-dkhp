@@ -1,8 +1,14 @@
 // ==UserScript==
 // @name         HCMUS Auto DKHP - HK3 23TC Safe
-// @namespace    hcmus-auto-dkhp
-// @version      4.3
-// @description  Auto login + auto tick + auto submit + auto F5. Không bypass captcha.
+// @namespace    https://github.com/lhlizdabezt/hcmus-auto-dkhp
+// @version      4.3.0
+// @description  Tampermonkey helper for HCMUS course registration: scheduled reload, target matching, optional auto tick and optional submit. Does not bypass CAPTCHA.
+// @author       Lương Hải Long
+// @homepageURL  https://github.com/lhlizdabezt/hcmus-auto-dkhp
+// @supportURL   https://github.com/lhlizdabezt/hcmus-auto-dkhp/issues
+// @downloadURL  https://raw.githubusercontent.com/lhlizdabezt/hcmus-auto-dkhp/main/tricker/HCMUS%20Auto%20DKHP%20-%20HK3%2023TC%20Safe-2.0.user.js
+// @updateURL    https://raw.githubusercontent.com/lhlizdabezt/hcmus-auto-dkhp/main/tricker/HCMUS%20Auto%20DKHP%20-%20HK3%2023TC%20Safe-2.0.user.js
+// @license      MIT
 // @match        https://new-portal2.hcmus.edu.vn/*
 // @match        http://new-portal2.hcmus.edu.vn/*
 // @match        *://*/DangKyHocPhan.aspx*
@@ -18,8 +24,8 @@
     "use strict";
 
     // ==== CONFIG ====
-    const START_AT = "2026-05-12T09:00:00+07:00"; // sửa nếu portal đổi giờ
-    const AUTO_SUBMIT = true;                     // false = chỉ tick, không bấm Đăng Ký
+    const START_AT = "2026-06-01T08:00:00+07:00"; // đổi thành giờ mở đăng ký thật
+    const AUTO_SUBMIT = false;                    // true = tự bấm Đăng Ký sau khi tick đúng target
     const AUTO_RELOAD = true;                     // false = không F5
     const RELOAD_SECONDS = 3;                     // chu kỳ F5 cơ bản (giây)
     const RELOAD_JITTER_MS = 1200;                // cộng thêm ngẫu nhiên 0..N ms để tránh đồng bộ
@@ -27,29 +33,15 @@
     const HEARTBEAT_RELOAD_SEC = 12;              // nếu trang đứng quá lâu thì F5 cứu
 
     // ==== AUTO LOGIN CONFIG ====
-    const AUTO_LOGIN = true;                      // false = tắt module login
+    const AUTO_LOGIN = false;                     // true = bật module login thủ công/localStorage
     const AUTO_NAV_TO_DKHP = true;                // sau login xong tự sang DangKyHocPhan.aspx
     const CAPTCHA_POLL_MS = 400;                  // tần suất check captcha xong
     const CAPTCHA_WAIT_MAX_MIN = 5;               // sau X phút không tick captcha thì bỏ
     const CREDS_KEY = "hcmus-creds-v1";           // key localStorage chứa user/pass
 
     const TARGET_COURSES = [
-        { code: "ETC10123", cls: "23DTV_CLC1", name: "TH Thiết kế vi mạch điện tử", time: "T2(1-6)" },
-        { code: "ETC10234", cls: "24DTV_DKD3", name: "Cấu trúc dữ liệu và giải thuật", time: "T2(7-9)" },
-
-        { code: "ETC10227", cls: "22DTV_CLC1", name: "An ninh mạng", time: "T3(1-3)" },
-        { code: "ETC10132", cls: "22DTV_CLC1", name: "Xử lý tín hiệu y sinh", time: "T3(4-6)" },
-        { code: "ETC10013", cls: "24DTV_DKD1", name: "Xử lý tín hiệu số", time: "T3(7-12)" },
-
-        { code: "ETC00085", cls: "24DTV_DK1A", name: "TH Cảm biến, đo, máy đo", time: "T4(1-3)" },
-        { code: "ETC10133", cls: "22DTV_CLC2", name: "Bộ nhớ máy tính", time: "T4(4-6)" },
-        { code: "ETC00021", cls: "24DTV_DKD3", name: "Cảm biến, đo, máy đo", time: "T4(7-9)" },
-
-        { code: "ETC10122", cls: "23DTV_CLC3", name: "Thiết kế vi mạch điện tử", time: "T5(7-12)" },
-
-        { code: "ETC00002", cls: "25DTV_DKD3", name: "Điện tử số", time: "T6(1-3)" },
-        { code: "ETC10126", cls: "23DTV_CLC1", name: "Anten và truyền sóng", time: "T6(4-6)" },
-        { code: "ETC10014", cls: "24DTV_DKD2", name: "TH xử lý tín hiệu số", time: "T7(1-6)" },
+        { code: "CSC10001", cls: "22_1", name: "Sample Course", time: "T2(1-3)" },
+        { code: "ETC10001", cls: "23DTV_CLC1", name: "Sample Lab", time: "T4(7-9)" },
     ];
 
     const RUN_ID = "hcmus-dkhp-hk3-23tc-safe-v3";
