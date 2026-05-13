@@ -1,0 +1,12 @@
+# Ignore saved portal snapshots and downloaded assets by default.
+# These files can contain ASP.NET ViewState, user id, MSSV, schedule data,
+# captcha state, and other page/session artifacts.
+*
+
+# Keep repo metadata and docs.
+!.gitignore
+!README.md
+
+# Keep only the reusable userscript.
+!tricker/
+!tricker/HCMUS Auto DKHP - HK3 23TC Safe-2.0.user.js
