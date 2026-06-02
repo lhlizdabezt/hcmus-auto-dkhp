@@ -8,7 +8,7 @@
       <stop offset="100%" stop-color="#2563eb" />
     </linearGradient>
     <style>
-      .title { font: 800 34px Segoe UI, Arial, sans-serif; fill: #f8fafc; letter-spacing: 0; }
+      .title { font: 800 35px Segoe UI, Arial, sans-serif; fill: #f8fafc; letter-spacing: 0; }
       .subtitle { font: 650 19px Segoe UI, Arial, sans-serif; fill: #dbeafe; letter-spacing: 0; }
       .chipText { font: 800 15px Segoe UI, Arial, sans-serif; fill: #0f172a; letter-spacing: 0; }
       .caption { font: 700 16px Segoe UI, Arial, sans-serif; fill: #e2e8f0; letter-spacing: 0; }
@@ -21,16 +21,16 @@
   </defs>
   <rect width="1200" height="360" rx="26" fill="url(#bg)" />
   <rect x="38" y="34" width="1124" height="292" rx="22" class="panel" />
-  <text x="72" y="66" class="title">hcmus auto dkhp</text>
-  <text x="72" y="96" class="subtitle">Tampermonkey userscript for HCMUS course-registration support with</text>
-  <text x="72" y="124" class="subtitle">scheduled reload, class matching and controlled form interaction.</text>
+  <text x="72" y="66" class="title">HCMUS Course Registration Userscript</text>
+  <text x="72" y="96" class="subtitle">Tampermonkey workflow support with scheduled reload, exact row</text>
+  <text x="72" y="124" class="subtitle">matching, manual CAPTCHA boundaries and review-first submission.</text>
   <g>
-    <g class="pulse"><rect x="89" y="248" width="190" height="48" rx="16" fill="#e0f2fe" /><text x="184.0" y="278" text-anchor="middle" class="chipText">course registrat..</text></g>
-    <g class="pulse"><rect x="297" y="248" width="190" height="48" rx="16" fill="#dcfce7" /><text x="392.0" y="278" text-anchor="middle" class="chipText">hcmus</text></g>
-    <g class="pulse"><rect x="505" y="248" width="190" height="48" rx="16" fill="#fef9c3" /><text x="600.0" y="278" text-anchor="middle" class="chipText">javascript</text></g>
-    <g class="pulse"><rect x="713" y="248" width="190" height="48" rx="16" fill="#fee2e2" /><text x="808.0" y="278" text-anchor="middle" class="chipText">tampermonkey</text></g>
-    <g class="pulse"><rect x="921" y="248" width="190" height="48" rx="16" fill="#dbeafe" /><text x="1016.0" y="278" text-anchor="middle" class="chipText">userscript</text></g>
+    <g class="pulse"><rect x="76" y="248" width="190" height="48" rx="16" fill="#e0f2fe" /><text x="171" y="278" text-anchor="middle" class="chipText">Course Rows</text></g>
+    <g class="pulse"><rect x="286" y="248" width="190" height="48" rx="16" fill="#dcfce7" /><text x="381" y="278" text-anchor="middle" class="chipText">HCMUS Portal</text></g>
+    <g class="pulse"><rect x="496" y="248" width="190" height="48" rx="16" fill="#fef9c3" /><text x="591" y="278" text-anchor="middle" class="chipText">JavaScript</text></g>
+    <g class="pulse"><rect x="706" y="248" width="190" height="48" rx="16" fill="#fee2e2" /><text x="801" y="278" text-anchor="middle" class="chipText">Tampermonkey</text></g>
+    <g class="pulse"><rect x="916" y="248" width="210" height="48" rx="16" fill="#dbeafe" /><text x="1021" y="278" text-anchor="middle" class="chipText">Manual CAPTCHA</text></g>
   </g>
   <rect x="72" y="304" width="1056" height="28" rx="14" fill="rgba(15,23,42,.58)" />
-  <text x="600.0" y="323" text-anchor="middle" class="caption">English visual asset - no connector lines - release-backed portfolio evidence</text>
+  <text x="600.0" y="323" text-anchor="middle" class="caption">English visual asset - no connector lines - release-backed userscript evidence</text>
 </svg>

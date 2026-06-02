@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         HCMUS Auto DKHP - HK3 23TC Safe
 // @namespace    https://github.com/lhlizdabezt/hcmus-auto-dkhp
-// @version      4.3.0
-// @description  Tampermonkey helper for HCMUS course registration: scheduled reload, target matching, optional auto tick and optional submit. Does not bypass CAPTCHA.
-// @author       Lương Hải Long
+// @version      4.4.0
+// @description  Tampermonkey helper for HCMUS course registration: scheduled reload, target matching, optional checkbox selection and optional submit. Does not bypass CAPTCHA.
+// @author       Luong Hai Long
 // @homepageURL  https://github.com/lhlizdabezt/hcmus-auto-dkhp
 // @supportURL   https://github.com/lhlizdabezt/hcmus-auto-dkhp/issues
 // @downloadURL  https://raw.githubusercontent.com/lhlizdabezt/hcmus-auto-dkhp/main/tricker/HCMUS%20Auto%20DKHP%20-%20HK3%2023TC%20Safe-2.0.user.js
@@ -23,59 +23,62 @@
 (function () {
     "use strict";
 
-    // ==== CONFIG ====
-    const START_AT = "2026-06-01T08:00:00+07:00"; // đổi thành giờ mở đăng ký thật
-    const AUTO_SUBMIT = false;                    // true = tự bấm Đăng Ký sau khi tick đúng target
-    const AUTO_RELOAD = true;                     // false = không F5
-    const RELOAD_SECONDS = 3;                     // chu kỳ F5 cơ bản (giây)
-    const RELOAD_JITTER_MS = 1200;                // cộng thêm ngẫu nhiên 0..N ms để tránh đồng bộ
-    const POST_SUBMIT_RELOAD_SEC = 6;             // F5 cứu sau khi bấm Đăng Ký (chờ postback)
-    const HEARTBEAT_RELOAD_SEC = 12;              // nếu trang đứng quá lâu thì F5 cứu
+    // ==== CONFIGURATION ====
+    const START_AT = "2026-06-01T08:00:00+07:00"; // Replace with the official registration opening time.
+    const AUTO_SUBMIT = false;                    // true = submit after the exact target rows are selected.
+    const AUTO_RELOAD = true;                     // false = do not refresh automatically.
+    const RELOAD_SECONDS = 3;                     // Base reload interval in seconds.
+    const RELOAD_JITTER_MS = 1200;                // Adds 0..N ms random delay to reduce synchronized refresh.
+    const POST_SUBMIT_RELOAD_SEC = 6;             // Recovery reload after clicking Submit.
+    const HEARTBEAT_RELOAD_SEC = 12;              // Recovery reload if no decision is reached.
 
-    // ==== AUTO LOGIN CONFIG ====
-    const AUTO_LOGIN = false;                     // true = bật module login thủ công/localStorage
-    const AUTO_NAV_TO_DKHP = true;                // sau login xong tự sang DangKyHocPhan.aspx
-    const CAPTCHA_POLL_MS = 400;                  // tần suất check captcha xong
-    const CAPTCHA_WAIT_MAX_MIN = 5;               // sau X phút không tick captcha thì bỏ
-    const CREDS_KEY = "hcmus-creds-v1";           // key localStorage chứa user/pass
+    // ==== OPTIONAL LOGIN SUPPORT ====
+    const AUTO_LOGIN = false;                     // true = enable localStorage-assisted login after manual setup.
+    const AUTO_NAV_TO_DKHP = true;                // Navigate to DangKyHocPhan.aspx after login succeeds.
+    const CAPTCHA_POLL_MS = 400;                  // Poll interval after the user completes CAPTCHA.
+    const CAPTCHA_WAIT_MAX_MIN = 5;               // Stop waiting for CAPTCHA after this many minutes.
+    const CREDS_KEY = "hcmus-creds-v1";           // localStorage key for saved username/password.
 
     const TARGET_COURSES = [
         { code: "CSC10001", cls: "22_1", name: "Sample Course", time: "T2(1-3)" },
         { code: "ETC10001", cls: "23DTV_CLC1", name: "Sample Lab", time: "T4(7-9)" },
     ];
 
-    const RUN_ID = "hcmus-dkhp-hk3-23tc-safe-v3";
+    const RUN_ID = "hcmus-dkhp-hk3-23tc-safe-v4";
     const STOP_KEY = `${RUN_ID}:stopped`;
     const LAST_TICK_KEY = `${RUN_ID}:lastTick`;
     const RELOAD_COUNT_KEY = `${RUN_ID}:reloadCount`;
     const JUST_LOGGED_IN_KEY = `${RUN_ID}:justLoggedIn`;
     const POST_LOGIN_NAV_MAX_SEC = 30;
 
-    // ==== EARLY: bịt dialog NGAY khi script load (trước cả page scripts attach onbeforeunload)
     try { window.confirm = () => true; } catch (e) { }
     try { window.alert = () => undefined; } catch (e) { }
     try { window.onbeforeunload = null; } catch (e) { }
 
-    // Đếm reload để debug
     try {
         const n = Number(localStorage.getItem(RELOAD_COUNT_KEY) || "0") + 1;
         localStorage.setItem(RELOAD_COUNT_KEY, String(n));
         console.log("[HCMUS Auto DKHP] page load #" + n + " @ " + location.href);
     } catch (e) { }
 
-    // ==== UTILS ====
-    function norm(s) {
-        return String(s || "")
-            .normalize("NFC")
+    function norm(value) {
+        return String(value || "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[\u0110\u0111]/g, "d")
             .replace(/\s+/g, " ")
             .trim()
             .toUpperCase();
     }
 
-    function key(t) { return `${t.code}|${t.cls}|${t.time}`; }
-    function log(...args) { console.log("[HCMUS Auto DKHP]", ...args); }
+    function key(target) {
+        return `${target.code}|${target.cls}|${target.time}`;
+    }
 
-    // ==== BADGE UI ====
+    function log(...args) {
+        console.log("[HCMUS Auto DKHP]", ...args);
+    }
+
     function makeBadge() {
         let el = document.getElementById("hcmus-auto-dkhp-badge");
         if (el) return el;
@@ -99,7 +102,7 @@
         `;
 
         const stopBtn = document.createElement("button");
-        stopBtn.textContent = "⏹ Dừng";
+        stopBtn.textContent = "Stop";
         stopBtn.style.cssText = `
             float: right;
             margin-left: 8px;
@@ -113,11 +116,11 @@
         `;
         stopBtn.onclick = () => {
             localStorage.setItem(STOP_KEY, "1");
-            setBadge("Đã dừng thủ công. Reload trang sẽ KHÔNG chạy lại.\nMuốn bật lại: xoá key " + STOP_KEY + " trong localStorage.");
+            setBadge("Manual stop is active. Automatic reload will not restart.\nTo resume, clear this localStorage key: " + STOP_KEY);
         };
 
         const resetBtn = document.createElement("button");
-        resetBtn.textContent = "↻ Reset";
+        resetBtn.textContent = "Reset";
         resetBtn.style.cssText = `
             float: right;
             margin-left: 8px;
@@ -147,15 +150,15 @@
 
     function setBadge(text) {
         makeBadge();
-        const t = document.getElementById("hcmus-auto-dkhp-badge-text");
-        if (t) t.textContent = text;
+        const target = document.getElementById("hcmus-auto-dkhp-badge-text");
+        if (target) target.textContent = text;
     }
 
-    // ==== RELOAD LOOP ====
     let reloadScheduled = false;
+
     function scheduleReload(reason, baseSec) {
         if (!AUTO_RELOAD) {
-            setBadge(`${reason}\n(AUTO_RELOAD=false, không tự F5)`);
+            setBadge(`${reason}\nAUTO_RELOAD is false; no automatic refresh is scheduled.`);
             return;
         }
         if (reloadScheduled) return;
@@ -163,12 +166,11 @@
 
         const base = (baseSec ?? RELOAD_SECONDS) * 1000;
         const delay = base + Math.floor(Math.random() * RELOAD_JITTER_MS);
-        const startAt = Date.now();
-        const endAt = startAt + delay;
+        const endAt = Date.now() + delay;
 
         const tick = () => {
             const left = Math.max(0, endAt - Date.now());
-            setBadge(`${reason}\nF5 sau ${(left / 1000).toFixed(1)}s...`);
+            setBadge(`${reason}\nReload in ${(left / 1000).toFixed(1)} seconds.`);
             if (left <= 0) return;
             setTimeout(tick, 200);
         };
@@ -177,33 +179,29 @@
         setTimeout(() => location.reload(), delay);
     }
 
-    // Heartbeat: nếu sau HEARTBEAT_RELOAD_SEC giây mà script chưa quyết định F5
-    // (vd: trang đứng vì JS crash khác), tự cứu bằng F5. Bỏ qua khi đã STOP.
     function armHeartbeat() {
         if (!AUTO_RELOAD) return;
         setTimeout(() => {
             if (localStorage.getItem(STOP_KEY) === "1") return;
             if (!reloadScheduled) {
-                log("Heartbeat fired — không có nhịp nào đặt reload, tự F5.");
+                log("Heartbeat reload fired because no decision was reached.");
                 location.reload();
             }
         }, HEARTBEAT_RELOAD_SEC * 1000);
     }
 
-    // ==== TIME / STOP GATES ====
     function waitForStartTime() {
         if (!START_AT) return false;
 
         const startMs = new Date(START_AT).getTime();
         if (Number.isNaN(startMs)) {
-            setBadge("START_AT sai format. Dùng dạng 2026-05-12T09:00:00+07:00");
+            setBadge("START_AT has an invalid format. Use a value such as 2026-06-01T08:00:00+07:00.");
             return true;
         }
 
         const diff = startMs - Date.now();
         if (diff > 0) {
-            const reason = `Chưa tới giờ ĐKHP. Còn ${Math.ceil(diff / 1000)}s.`;
-            // Khi còn xa thì F5 thưa hơn để khỏi hammer
+            const reason = `Registration has not opened yet. Remaining time: ${Math.ceil(diff / 1000)} seconds.`;
             const wait = diff > 60000 ? 30 : Math.max(1, Math.ceil(diff / 1000) - 1);
             scheduleReload(reason, wait);
             return true;
@@ -214,18 +212,17 @@
 
     function timedOutOrStopped() {
         if (localStorage.getItem(STOP_KEY) === "1") {
-            setBadge("Script đang dừng.\nBấm ↻ Reset hoặc xoá key " + STOP_KEY + " để chạy lại.");
+            setBadge("The userscript is stopped.\nClick Reset or clear the localStorage key to resume: " + STOP_KEY);
             return true;
         }
         return false;
     }
 
-    // ==== DOM HELPERS ====
     function getHeaderMap(table) {
         const map = {};
-        const headerRow = Array.from(table.querySelectorAll("tr")).find(tr => {
-            const text = norm(tr.textContent);
-            return text.includes("MÃ MH") && text.includes("TÊN LỚP");
+        const headerRow = Array.from(table.querySelectorAll("tr")).find((row) => {
+            const text = norm(row.textContent);
+            return text.includes("MA MH") && text.includes("TEN LOP");
         });
 
         if (!headerRow) return null;
@@ -233,10 +230,10 @@
         const cells = Array.from(headerRow.querySelectorAll("th,td"));
         cells.forEach((cell, index) => {
             const h = norm(cell.textContent);
-            if (h.includes("MÃ MH")) map.code = index;
-            if (h.includes("TÊN LỚP") || h === "LỚP") map.cls = index;
-            if (h.includes("LỊCH HỌC")) map.time = index;
-            if (h.includes("CHỌN")) map.choose = index;
+            if (h.includes("MA MH")) map.code = index;
+            if (h.includes("TEN LOP") || h === "LOP") map.cls = index;
+            if (h.includes("LICH HOC")) map.time = index;
+            if (h.includes("CHON")) map.choose = index;
         });
 
         if (map.code == null || map.cls == null || map.time == null) return null;
@@ -245,13 +242,13 @@
 
     function findCourseTables() {
         return Array.from(document.querySelectorAll("table"))
-            .map(table => ({ table, map: getHeaderMap(table) }))
-            .filter(x => x.map);
+            .map((table) => ({ table, map: getHeaderMap(table) }))
+            .filter((item) => item.map);
     }
 
     function getRowsFromTable(table) {
         return Array.from(table.querySelectorAll("tbody tr"))
-            .filter(row => row.querySelectorAll("td").length >= 4);
+            .filter((row) => row.querySelectorAll("td").length >= 4);
     }
 
     function isRegisteredRow(row, target) {
@@ -265,8 +262,8 @@
         for (const { table } of findCourseTables()) {
             const aroundText = norm(table.parentElement?.textContent || "");
             const looksRegisteredTable =
-                aroundText.includes("DANH SÁCH LỚP ĐÃ ĐĂNG KÝ") ||
-                aroundText.includes("ĐÃ ĐĂNG KÝ");
+                aroundText.includes("DANH SACH LOP DA DANG KY") ||
+                aroundText.includes("DA DANG KY");
 
             if (!looksRegisteredTable) continue;
 
@@ -285,17 +282,16 @@
             const text = norm(table.parentElement?.textContent || table.textContent);
             const hasCheckbox = !!table.querySelector("input[type='checkbox']");
 
-            // Loại bảng "Đã đăng ký" (checkbox của nó là cbHuyDK — hủy ĐK, không phải đăng ký mới)
             const isRegisteredTable =
-                text.includes("DANH SÁCH LỚP ĐÃ ĐĂNG KÝ") ||
+                text.includes("DANH SACH LOP DA DANG KY") ||
                 !!table.querySelector("input[name*='cbHuyDK']");
 
             if (isRegisteredTable) return false;
 
             const looksAllowed =
-                text.includes("ĐƯỢC PHÉP ĐĂNG KÝ") ||
-                text.includes("DANH SÁCH LỚP MỞ") ||
-                text.includes("DANH SÁCH LỚP") ||
+                text.includes("DUOC PHEP DANG KY") ||
+                text.includes("DANH SACH LOP MO") ||
+                text.includes("DANH SACH LOP") ||
                 hasCheckbox;
             return looksAllowed && hasCheckbox;
         });
@@ -316,7 +312,7 @@
 
     function selectTargets() {
         const done = getAlreadyRegisteredTargets();
-        const leftTargets = TARGET_COURSES.filter(t => !done.has(key(t)));
+        const leftTargets = TARGET_COURSES.filter((target) => !done.has(key(target)));
 
         if (!leftTargets.length) {
             localStorage.setItem(STOP_KEY, "1");
@@ -337,13 +333,12 @@
 
                     const checkbox = row.querySelector("input[type='checkbox']");
                     if (!checkbox || checkbox.disabled) {
-                        log("Tìm thấy target nhưng checkbox thiếu/disabled:", target);
+                        log("Target row found, but the checkbox is missing or disabled:", target);
                         continue;
                     }
 
                     if (!checkbox.checked) {
                         checkbox.click();
-                        // Đảm bảo state checked (vài trường hợp click bị onclick cancel)
                         if (!checkbox.checked) {
                             checkbox.checked = true;
                             checkbox.dispatchEvent(new Event("input", { bubbles: true }));
@@ -359,9 +354,7 @@
         return { selected, done, leftTargets, status: selected.length ? "ok" : "no_match_yet" };
     }
 
-    // ==== SUBMIT ====
     function findRegisterButton() {
-        // Ưu tiên đúng id chuẩn của portal
         const direct = document.getElementById("ctl00_ContentPlaceHolder1_ViewThongTinDangKy1_btnDangKy");
         if (direct) return direct;
 
@@ -369,24 +362,25 @@
             document.querySelectorAll("input[type='submit'], input[type='button'], button")
         );
 
-        return candidates.find(btn => {
+        return candidates.find((button) => {
             const text = norm([
-                btn.value, btn.innerText, btn.textContent,
-                btn.id, btn.name, btn.getAttribute("onclick")
+                button.value,
+                button.innerText,
+                button.textContent,
+                button.id,
+                button.name,
+                button.getAttribute("onclick"),
             ].join(" "));
 
             const yes =
-                text.includes("ĐĂNG KÝ") ||
                 text.includes("DANG KY") ||
                 text.includes("DANGKY") ||
                 text.includes("DKHP") ||
                 text.includes("BTNDANGKY");
 
             const no =
-                text.includes("HỦY") ||
                 text.includes("HUY") ||
                 text.includes("XEM") ||
-                text.includes("XÓA") ||
                 text.includes("XOA") ||
                 text.includes("BTNDELETE");
 
@@ -394,7 +388,6 @@
         }) || null;
     }
 
-    // Bịt mọi dialog chặn submit
     function muteBlockingDialogs() {
         try { window.confirm = () => true; } catch (e) { }
         try { window.alert = () => undefined; } catch (e) { }
@@ -404,46 +397,43 @@
     function submitSelected(selected) {
         if (!selected.length) return false;
 
-        const lines = selected.map(x => `${x.code} - ${x.cls} - ${x.time}`).join("\n");
+        const lines = selected.map((item) => `${item.code} - ${item.cls} - ${item.time}`).join("\n");
 
         if (!AUTO_SUBMIT) {
             setBadge(
-                "Đã tick xong. AUTO_SUBMIT=false nên không bấm Đăng Ký.\n\n" +
-                lines + "\n\nKiểm tra rồi bấm tay, hoặc đổi AUTO_SUBMIT=true."
+                "Target rows have been selected. AUTO_SUBMIT is false, so the script will not submit automatically.\n\n" +
+                lines + "\n\nReview the rows and submit manually, or set AUTO_SUBMIT to true."
             );
             return true;
         }
 
         muteBlockingDialogs();
 
-        const btn = findRegisterButton();
-        if (!btn) {
-            setBadge("Tick xong nhưng KHÔNG thấy nút Đăng Ký. Bấm tay đi.\n\n" + lines);
-            // Vẫn F5 để retry sang lượt sau
-            scheduleReload("Không thấy nút Đăng Ký", POST_SUBMIT_RELOAD_SEC);
+        const button = findRegisterButton();
+        if (!button) {
+            setBadge("Rows were selected, but the registration button was not found. Submit manually if the selection is correct.\n\n" + lines);
+            scheduleReload("Registration button was not found after target selection.", POST_SUBMIT_RELOAD_SEC);
             return true;
         }
 
-        setBadge("Đã tick. Đang bấm Đăng Ký:\n\n" + lines);
+        setBadge("Rows were selected. Submitting now:\n\n" + lines);
         localStorage.setItem(LAST_TICK_KEY, String(Date.now()));
 
         try {
-            btn.click();
+            button.click();
         } catch (e) {
-            log("btn.click() lỗi, thử __doPostBack:", e);
+            log("button.click() failed; the portal may require manual submission.", e);
         }
 
-        // F5 cứu nếu postback không trigger reload tự nhiên
-        scheduleReload("Đã bấm Đăng Ký. F5 cứu để chắc.", POST_SUBMIT_RELOAD_SEC);
+        scheduleReload("Submit was clicked. Scheduling a recovery reload.", POST_SUBMIT_RELOAD_SEC);
         return true;
     }
 
-    // ==== PAGE DETECTION ====
     function isOnLoginPage() {
         if (/Login\.aspx/i.test(location.pathname)) return true;
         if (document.getElementById("ctl00_ContentPlaceHolder1_txtPassword")) return true;
-        const t = norm(document.title || "");
-        return t.includes("ĐĂNG NHẬP") && t.includes("HCMUS");
+        const title = norm(document.title || "");
+        return title.includes("DANG NHAP") && title.includes("HCMUS");
     }
 
     function isOnDKHPPage() {
@@ -452,8 +442,6 @@
         return hasDKHPCaptchaGate();
     }
 
-    // DKHP page có thể ở 2 state: (1) gate yêu cầu nhập captcha, (2) bảng đăng ký.
-    // Có đủ 3 element captcha = đang ở gate, chưa qua được để vào bảng.
     function hasDKHPCaptchaGate() {
         return !!(
             document.getElementById("ctl00_ContentPlaceHolder1_txtCaptcha") &&
@@ -462,34 +450,36 @@
         );
     }
 
-    // ==== CREDS STORE ====
     function getCreds() {
-        try { return JSON.parse(localStorage.getItem(CREDS_KEY) || "null"); }
-        catch (e) { return null; }
+        try {
+            return JSON.parse(localStorage.getItem(CREDS_KEY) || "null");
+        } catch (e) {
+            return null;
+        }
     }
-    function setCreds(u, p) {
-        localStorage.setItem(CREDS_KEY, JSON.stringify({ u, p }));
+
+    function setCreds(username, password) {
+        localStorage.setItem(CREDS_KEY, JSON.stringify({ u: username, p: password }));
     }
+
     function clearCreds() {
         localStorage.removeItem(CREDS_KEY);
     }
 
-    // ==== LOGIN FLOW ====
     function fillLoginForm(creds) {
-        const u = document.getElementById("ctl00_ContentPlaceHolder1_txtUsername");
-        const p = document.getElementById("ctl00_ContentPlaceHolder1_txtPassword");
-        if (!u || !p) return false;
+        const username = document.getElementById("ctl00_ContentPlaceHolder1_txtUsername");
+        const password = document.getElementById("ctl00_ContentPlaceHolder1_txtPassword");
+        if (!username || !password) return false;
 
-        // Chỉ fill nếu trường còn rỗng — tránh đè khi user vừa gõ tay
-        if (!u.value) {
-            u.value = creds.u;
-            u.dispatchEvent(new Event("input", { bubbles: true }));
-            u.dispatchEvent(new Event("change", { bubbles: true }));
+        if (!username.value) {
+            username.value = creds.u;
+            username.dispatchEvent(new Event("input", { bubbles: true }));
+            username.dispatchEvent(new Event("change", { bubbles: true }));
         }
-        if (!p.value) {
-            p.value = creds.p;
-            p.dispatchEvent(new Event("input", { bubbles: true }));
-            p.dispatchEvent(new Event("change", { bubbles: true }));
+        if (!password.value) {
+            password.value = creds.p;
+            password.dispatchEvent(new Event("input", { bubbles: true }));
+            password.dispatchEvent(new Event("change", { bubbles: true }));
         }
         return true;
     }
@@ -500,8 +490,8 @@
                 return grecaptcha.getResponse() || "";
             }
         } catch (e) { }
-        const ta = document.getElementById("g-recaptcha-response");
-        return ta ? (ta.value || "") : "";
+        const textarea = document.getElementById("g-recaptcha-response");
+        return textarea ? (textarea.value || "") : "";
     }
 
     function markJustLoggedIn() {
@@ -509,68 +499,68 @@
     }
 
     function hookManualLoginClick() {
-        const btn = document.getElementById("ctl00_ContentPlaceHolder1_btnLogin");
-        if (!btn || btn._hcmusHooked) return;
-        btn._hcmusHooked = true;
-        // User tự bấm bằng tay thì cũng đánh dấu, để autoNav vẫn hoạt động
-        btn.addEventListener("click", markJustLoggedIn, true);
+        const button = document.getElementById("ctl00_ContentPlaceHolder1_btnLogin");
+        if (!button || button._hcmusHooked) return;
+        button._hcmusHooked = true;
+        button.addEventListener("click", markJustLoggedIn, true);
     }
 
     function waitForCaptchaAndSubmit() {
         const start = Date.now();
         const maxMs = CAPTCHA_WAIT_MAX_MIN * 60 * 1000;
 
-        const iv = setInterval(() => {
+        const interval = setInterval(() => {
             if (Date.now() - start > maxMs) {
-                clearInterval(iv);
-                setBadge("⏱ Hết giờ chờ captcha. Tick captcha rồi tự bấm Đăng nhập đi.");
+                clearInterval(interval);
+                setBadge("CAPTCHA wait timed out. Complete CAPTCHA and submit the login form manually.");
                 return;
             }
-            const tok = getCaptchaToken();
-            if (tok && tok.length > 10) {
-                clearInterval(iv);
-                const btn = document.getElementById("ctl00_ContentPlaceHolder1_btnLogin");
-                if (!btn) {
-                    setBadge("Captcha xong nhưng không thấy nút Đăng nhập.");
+            const token = getCaptchaToken();
+            if (token && token.length > 10) {
+                clearInterval(interval);
+                const button = document.getElementById("ctl00_ContentPlaceHolder1_btnLogin");
+                if (!button) {
+                    setBadge("CAPTCHA appears complete, but the login button was not found.");
                     return;
                 }
-                setBadge("✅ Captcha xong → bấm Đăng nhập...");
+                setBadge("CAPTCHA appears complete. Submitting the login form.");
                 markJustLoggedIn();
-                setTimeout(() => btn.click(), 200);
+                setTimeout(() => button.click(), 200);
             }
         }, CAPTCHA_POLL_MS);
     }
 
     function makeLoginPanel(creds) {
         makeBadge();
-        const t = document.getElementById("hcmus-auto-dkhp-badge-text");
-        if (!t) return;
+        const target = document.getElementById("hcmus-auto-dkhp-badge-text");
+        if (!target) return;
 
-        t.innerHTML = "";
+        target.innerHTML = "";
+
         const title = document.createElement("div");
         title.style.fontWeight = "bold";
         title.style.marginBottom = "6px";
         title.textContent = creds
-            ? "🔐 Auto-login: đã có creds"
-            : "🔐 Auto-login: chưa lưu creds";
-        t.appendChild(title);
+            ? "Auto-login support: credentials are saved locally"
+            : "Auto-login support: no credentials saved";
+        target.appendChild(title);
 
         const info = document.createElement("div");
         info.style.fontSize = "12px";
         info.style.color = "#555";
         info.textContent = creds
-            ? `User: ${creds.u}\nTick captcha → auto bấm Đăng nhập.`
-            : "Bấm [Lưu] để nhập user/pass.";
+            ? `Username: ${creds.u}\nComplete CAPTCHA; the script can submit login after CAPTCHA is ready.`
+            : "Click Save credentials to store username and password in localStorage.";
         info.style.whiteSpace = "pre-wrap";
-        t.appendChild(info);
+        target.appendChild(info);
 
         const btnRow = document.createElement("div");
         btnRow.style.marginTop = "8px";
 
-        const mkBtn = (label, color, onClick) => {
-            const b = document.createElement("button");
-            b.textContent = label;
-            b.style.cssText = `
+        const makeButton = (label, color, onClick) => {
+            const button = document.createElement("button");
+            button.textContent = label;
+            button.style.cssText = `
                 margin-right: 6px;
                 padding: 3px 10px;
                 font: 12px Arial, sans-serif;
@@ -580,31 +570,31 @@
                 color: ${color};
                 border-radius: 4px;
             `;
-            b.onclick = onClick;
-            return b;
+            button.onclick = onClick;
+            return button;
         };
 
-        btnRow.appendChild(mkBtn(creds ? "Đổi creds" : "Lưu creds", "#36c", () => {
-            const u = prompt("Tên đăng nhập:", creds?.u || "");
-            if (u == null) return;
-            const p = prompt("Mật khẩu (lưu vào localStorage plain text):", "");
-            if (p == null) return;
-            setCreds(u.trim(), p);
+        btnRow.appendChild(makeButton(creds ? "Change credentials" : "Save credentials", "#36c", () => {
+            const username = prompt("Username:", creds?.u || "");
+            if (username == null) return;
+            const password = prompt("Password stored as plain text in localStorage:", "");
+            if (password == null) return;
+            setCreds(username.trim(), password);
             location.reload();
         }));
 
         if (creds) {
-            btnRow.appendChild(mkBtn("Xoá creds", "#c33", () => {
+            btnRow.appendChild(makeButton("Clear credentials", "#c33", () => {
                 clearCreds();
-                setBadge("Đã xoá creds. Reload để nhập lại.");
+                setBadge("Credentials were cleared. Reload the page to save new credentials.");
             }));
         }
-        t.appendChild(btnRow);
+        target.appendChild(btnRow);
 
-        const warn = document.createElement("div");
-        warn.style.cssText = "margin-top:8px; font-size:11px; color:#a60;";
-        warn.textContent = "⚠ Pass lưu plain text trong localStorage. Đừng dùng máy chung.";
-        t.appendChild(warn);
+        const warning = document.createElement("div");
+        warning.style.cssText = "margin-top:8px; font-size:11px; color:#a60;";
+        warning.textContent = "Security note: credentials are stored as plain text in localStorage. Do not use this on a shared machine.";
+        target.appendChild(warning);
     }
 
     function loginMain(retries = 0) {
@@ -618,7 +608,7 @@
         const filled = fillLoginForm(creds);
         if (!filled) {
             if (retries >= 20) {
-                setBadge("Form login chưa render sau 10s. Có thể đây không phải trang login chuẩn.");
+                setBadge("The login form did not render after 10 seconds. This may not be the expected login page.");
                 return;
             }
             setTimeout(() => loginMain(retries + 1), 500);
@@ -628,38 +618,34 @@
         waitForCaptchaAndSubmit();
     }
 
-    // ==== POST-LOGIN NAV → DKHP ====
-    // Dùng flag localStorage (đặt khi click Đăng nhập) thay vì document.referrer.
-    // Referrer hay rỗng do COOP/strict-origin policy → kém tin cậy.
     function autoNavAfterLogin() {
         if (!AUTO_NAV_TO_DKHP) return false;
 
-        const t = Number(localStorage.getItem(JUST_LOGGED_IN_KEY) || "0");
-        if (!t) return false;
+        const timestamp = Number(localStorage.getItem(JUST_LOGGED_IN_KEY) || "0");
+        if (!timestamp) return false;
 
-        const ageSec = (Date.now() - t) / 1000;
+        const ageSec = (Date.now() - timestamp) / 1000;
         if (ageSec > POST_LOGIN_NAV_MAX_SEC) {
             localStorage.removeItem(JUST_LOGGED_IN_KEY);
             return false;
         }
 
-        if (isOnLoginPage()) return false;   // login chưa thành công, để loginMain xử
+        if (isOnLoginPage()) return false;
         if (isOnDKHPPage()) {
             localStorage.removeItem(JUST_LOGGED_IN_KEY);
             return false;
         }
 
-        setBadge(`✅ Login OK (sau ${ageSec.toFixed(1)}s). Sang trang ĐKHP...`);
-        // Xoá flag trước khi nav, tránh loop nếu DKHP lại redirect về Login
+        setBadge(`Login appears successful after ${ageSec.toFixed(1)} seconds. Navigating to course registration.`);
         localStorage.removeItem(JUST_LOGGED_IN_KEY);
         setTimeout(() => { location.href = "/DangKyHocPhan.aspx"; }, 250);
         return true;
     }
 
-    // ==== MAIN (dispatcher) ====
     let mainRan = false;
+
     function main() {
-        if (mainRan) return; // tránh chạy 2 lần khi cả DOMContentLoaded + load cùng fire
+        if (mainRan) return;
         mainRan = true;
 
         muteBlockingDialogs();
@@ -669,22 +655,16 @@
             return;
         }
 
-        // Vừa login xong (flag justLoggedIn còn hạn) → bất kể đang ở trang nào của portal,
-        // tự lái sang DangKyHocPhan.aspx. Tin cậy hơn so với check document.referrer.
         if (autoNavAfterLogin()) return;
 
         if (!isOnDKHPPage()) {
-            // Trang khác trên cùng domain (vd: SinhVien.aspx). Không làm gì.
             return;
         }
 
-        // ==== DKHP MODULE ====
         if (hasDKHPCaptchaGate()) {
-            // KHÔNG F5, KHÔNG armHeartbeat — để không reset ảnh captcha lúc user đang gõ.
             setBadge(
-                "👁 Trang ĐKHP cần captcha.\n" +
-                "Gõ captcha rồi Enter (hoặc bấm Tiếp Tục).\n" +
-                "Script tạm dừng F5 cho bạn gõ. Qua captcha xong sẽ tự chạy lại."
+                "The DKHP page requires CAPTCHA.\n" +
+                "Complete CAPTCHA manually and continue. Automatic refresh is paused while CAPTCHA is pending."
             );
             return;
         }
@@ -697,48 +677,46 @@
         const { selected, done, leftTargets, status } = selectTargets();
 
         const summary =
-            `Đã ĐK ${done.size}/${TARGET_COURSES.length} môn.\n` +
+            `Registered targets: ${done.size}/${TARGET_COURSES.length}.\n` +
             (leftTargets.length
-                ? "Còn chờ:\n" + leftTargets.map(x => `  • ${x.code} ${x.cls} ${x.time}`).join("\n")
-                : "Không còn môn nào.");
+                ? "Waiting for:\n" + leftTargets.map((item) => `  - ${item.code} ${item.cls} ${item.time}`).join("\n")
+                : "No target courses remain.");
 
         if (status === "all_done") {
-            setBadge("✅ Đăng ký đủ target rồi. Script dừng.\n\n" + summary);
+            setBadge("All target courses appear registered. The userscript is now stopped.\n\n" + summary);
             return;
         }
 
         if (status === "ok") {
-            // selected.length > 0 → submitSelected sẽ tự đặt scheduleReload cứu
             submitSelected(selected);
             return;
         }
 
         if (status === "no_active_table") {
             scheduleReload(
-                "Chưa thấy bảng lớp được phép đăng ký.\nCó thể chưa qua captcha / chưa tới lượt.\n\n" + summary
+                "No active registration table was found. You may still be before CAPTCHA, before the registration window, or outside the target table.\n\n" + summary
             );
             return;
         }
 
-        // no_match_yet — có bảng, có checkbox, nhưng target chưa xuất hiện
-        scheduleReload("Chưa thấy lớp target trong bảng.\n\n" + summary);
+        scheduleReload("Target rows were not found in the active table yet.\n\n" + summary);
     }
 
-    // ==== BOOT (chống bfcache + race DOMContentLoaded/load) ====
-    function boot() { setTimeout(main, 600); }
+    function boot() {
+        setTimeout(main, 600);
+    }
 
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", boot, { once: true });
     } else {
-        boot(); // script chạy trễ, DOM đã sẵn sàng
+        boot();
     }
+
     window.addEventListener("load", boot, { once: true });
 
-    // Bfcache restore: browser khôi phục page từ back-forward cache → load KHÔNG fire.
-    // pageshow fire với persisted=true. Reset mainRan để chạy lại.
-    window.addEventListener("pageshow", (e) => {
-        if (e.persisted) {
-            console.log("[HCMUS Auto DKHP] pageshow persisted=true (bfcache restore) — re-run main");
+    window.addEventListener("pageshow", (event) => {
+        if (event.persisted) {
+            console.log("[HCMUS Auto DKHP] bfcache restore detected; rerunning main.");
             mainRan = false;
             reloadScheduled = false;
             boot();

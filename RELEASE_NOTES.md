@@ -1,16 +1,17 @@
-# Line-Free Visual Safety Pass - 2026-06-02
+# HCMUS Auto DKHP v4.4.0
 
 ## Scope
 
-This release refreshes `hcmus-auto-dkhp` SVG visuals for English-facing GitHub portfolio review.
+This release completes the English portfolio pass for `hcmus-auto-dkhp` and makes the userscript easier to inspect for HR screening, engineering review and responsible-use evaluation.
 
 ## Changes
 
-- Replaced line-based SVG motion with card-based, line-free visual layouts.
-- Kept SVG text English and ASCII-safe.
-- Removed connector-line, dashed-line, dotted-line and scan-line patterns from generated visual assets.
-- Preserved the repository description, topics, source files and release-backed evidence model.
+- Rewrote visible userscript overlay text, comments and metadata in professional English.
+- Kept HCMUS portal text matching functional by normalizing Vietnamese page headings internally instead of storing garbled visible strings.
+- Expanded the README with quick start, configuration, target-course format, safety boundaries, troubleshooting and FAQ sections.
+- Updated the SVG portfolio visual with clear English labels and no moving connector, dashed, dotted or curved lines.
+- Preserved the manual CAPTCHA boundary and kept `AUTO_SUBMIT` disabled by default.
 
 ## Review Context
 
-The updated visuals are designed for GitHub README rendering, mobile review and HR or engineering portfolio screening.
+This release positions the repository as a bounded browser userscript and student workflow-tooling project. It does not claim privileged portal access, CAPTCHA bypassing or guaranteed registration success.
