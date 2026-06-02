@@ -9,6 +9,11 @@
 !RELEASE_NOTES.md
 !CHANGELOG.md
 !LICENSE
+!.gitattributes
+
+# Keep the public portfolio visual only.
+!assets/
+!assets/portfolio-motion.svg
 
 # Keep only the reusable userscript.
 !tricker/
