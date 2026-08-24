@@ -1,185 +1,202 @@
-# HCMUS Course Registration Userscript
+# HCMUS Auto DKHP
 
-<p align="center">
-  <a href="https://github.com/lhlizdabezt/hcmus-auto-dkhp/releases/latest"><img src="https://img.shields.io/github/v/release/lhlizdabezt/hcmus-auto-dkhp?style=for-the-badge&logo=github&label=Release" alt="Latest release for hcmus-auto-dkhp" /></a>
-  <a href="https://github.com/lhlizdabezt/hcmus-auto-dkhp/tags"><img src="https://img.shields.io/github/v/tag/lhlizdabezt/hcmus-auto-dkhp?style=for-the-badge&logo=git&label=Tag" alt="Latest tag for hcmus-auto-dkhp" /></a>
-  <img src="https://img.shields.io/badge/Portfolio-English%20review%20ready-0f766e?style=for-the-badge" alt="English portfolio ready" />
-</p>
+[![Release](https://img.shields.io/github/v/release/lhlizdabezt/hcmus-auto-dkhp?style=flat-square&label=release)](https://github.com/lhlizdabezt/hcmus-auto-dkhp/releases/latest)
+[![Regression checks](https://img.shields.io/badge/regression%20checks-29%20passing-16803c?style=flat-square)](#verification)
+[![JavaScript](https://img.shields.io/badge/JavaScript-Tampermonkey-f7df1e?style=flat-square&logo=javascript&logoColor=111827)](https://www.tampermonkey.net/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-2563eb?style=flat-square)](LICENSE)
 
-<p align="center">
-  <img src="assets/portfolio-motion.svg" alt="English SVG visual for the HCMUS course registration userscript" width="100%" />
-</p>
+![HCMUS Auto DKHP v5.4.0 portfolio visual](assets/portfolio-motion.svg)
 
-## Overview
+HCMUS Auto DKHP is a Tampermonkey userscript for the official HCMUS course-registration portal. It coordinates scheduled access, optional credential filling, manual CAPTCHA checkpoints, exact course-row matching, timetable planning, credit-limit checks, bounded submission retries, and narrowly scoped registration confirmation.
 
-`hcmus-auto-dkhp` is a Tampermonkey userscript for HCMUS course-registration support. It helps a student monitor the registration page, wait for a configured opening time, match exact target course rows, select eligible checkboxes and optionally click the registration button after the user has reviewed the configuration.
+The implementation is deliberately fail-closed. It will not solve or bypass CAPTCHA, guess changed portal controls, accept partial timetable data, or report a credential write as successful when Tampermonkey storage fails.
 
-This project is a student productivity tool. It does not bypass CAPTCHA, does not replace manual account authentication and does not claim privileged access to the HCMUS portal. Manual steps remain manual where the portal requires them.
+> **Important:** v5.4.0 contains a release-specific HK1 2026-2027 plan and has the automatic workflow enabled. Review every target, schedule, credit value, opening time, and switch before using it with your account. Registration availability and acceptance remain decisions of HCMUS.
 
-| Field | Details |
+## Project status
+
+| Item | Current evidence |
 |---|---|
-| Repository | [hcmus-auto-dkhp](https://github.com/lhlizdabezt/hcmus-auto-dkhp) |
-| Portfolio category | Browser userscript, workflow tooling and student productivity support |
-| Primary stack | JavaScript, Tampermonkey, DOM inspection, browser automation and HCMUS portal workflow support |
-| Current userscript version | `4.4.0` |
-| Latest release | [GitHub Releases](https://github.com/lhlizdabezt/hcmus-auto-dkhp/releases/latest) |
-| Version tags | [Tags](https://github.com/lhlizdabezt/hcmus-auto-dkhp/tags) |
-| Owner profile | [Luong Hai Long](https://github.com/lhlizdabezt) |
+| Release | `v5.4.0` |
+| Official hosts | HTTPS `new-portal1.hcmus.edu.vn` through `new-portal20.hcmus.edu.vn` |
+| Release plan | 7 target courses, 13 credits, 21 ordered class options |
+| University limit encoded | 25 credits |
+| CAPTCHA boundary | Manual completion only |
+| Registration control | Exact verified HCMUS button identity; no text fallback |
+| Verification | 29 dependency-free Node.js regression checks |
+| Intended environment | Microsoft Edge or Chrome, with Tampermonkey |
 
-## Evidence Highlights
+The configured opening gate is `2026-09-04T09:00:00+07:00`, matching the K2024-and-earlier start published in the [official HCMUS HK1 2026-2027 notice](https://hcmus.edu.vn/thong-bao-dang-ky-hoc-phan-hk1-2026-2027-doi-voi-sinh-vien-chuong-trinh-clc-tcta-va-viet-phap/). The script does not infer a closing time from inconsistent dates in that notice.
 
-- Scheduled reload with jitter to reduce synchronized refresh behavior.
-- Exact target matching by course code, class and schedule text.
-- Checkbox selection for matching rows when the portal exposes eligible classes.
-- Optional submit mode, disabled by default for safer manual review.
-- Manual CAPTCHA boundary: the script pauses when CAPTCHA is present.
-- English user-facing overlay, comments, README, release notes and SVG visual asset.
-- Release-backed portfolio snapshots for HR screening and engineering review.
+## Installation
 
-## Repository Structure
+### 1. Install Tampermonkey
 
-| Path | Purpose |
-|---|---|
-| `tricker/HCMUS Auto DKHP - HK3 23TC Safe-2.0.user.js` | Main Tampermonkey userscript |
-| `assets/portfolio-motion.svg` | English, line-free SVG visual for README and profile review |
-| `CHANGELOG.md` | Previous version history |
-| `RELEASE_NOTES.md` | Current release notes used by GitHub Releases |
-| `.gitattributes` | Text and binary asset handling |
-| `.gitignore` | Local cache, browser and generated-file exclusions |
-| `LICENSE` | MIT license |
+Install Tampermonkey from its [official website](https://www.tampermonkey.net/) or your browser's extension store.
 
-## How It Works
+### 2. Install the userscript
 
-1. The script loads on the configured HCMUS portal URLs and on local test files that match the DKHP page patterns.
-2. It blocks disruptive browser dialogs that would otherwise interrupt the workflow.
-3. If the login page is detected, it can show an optional local login helper. This helper is off by default.
-4. If the DKHP CAPTCHA gate is detected, the script pauses automatic refresh so the user can complete CAPTCHA manually.
-5. If the configured opening time has not arrived, the script schedules a controlled reload.
-6. After the registration page is available, the script searches course tables, normalizes Vietnamese portal text internally and matches the configured target rows.
-7. Matching eligible rows are selected. If `AUTO_SUBMIT` is false, the script stops at selection and asks the user to review manually.
-8. If `AUTO_SUBMIT` is true, the script attempts to click the registration button and schedules a recovery reload.
+Open the [raw userscript](https://raw.githubusercontent.com/lhlizdabezt/hcmus-auto-dkhp/main/tricker/HCMUS%20Auto%20DKHP%20-%20HK3%2023TC%20Safe-2.0.user.js), review the source shown by Tampermonkey, and select **Install**.
 
-## Quick Start
+The historical filename is retained so existing Tampermonkey installations continue to receive updates. The metadata version and release tag are the authoritative version identifiers.
 
-1. Install a userscript manager such as [Tampermonkey](https://www.tampermonkey.net/) in Chrome, Microsoft Edge or another compatible browser.
-2. Open the raw userscript file:
-   [HCMUS Auto DKHP userscript](https://raw.githubusercontent.com/lhlizdabezt/hcmus-auto-dkhp/main/tricker/HCMUS%20Auto%20DKHP%20-%20HK3%2023TC%20Safe-2.0.user.js)
-3. Tampermonkey should detect the file and show an installation page.
-4. Review the script before installing. Confirm that the `@match` portal URLs and local test paths are appropriate for your browser.
-5. Edit the `TARGET_COURSES` configuration before relying on the script.
-6. Keep `AUTO_SUBMIT = false` for the first run so you can verify the selected rows manually.
-7. Open the HCMUS portal and complete login or CAPTCHA manually where required.
+### 3. Review the configuration
 
-## Configuration
+Open the installed script in the Tampermonkey editor and inspect the configuration block near the top of the file.
 
-Edit the configuration block near the top of the userscript.
+For a first review, use this conservative profile:
 
 ```javascript
-const START_AT = "2026-06-01T08:00:00+07:00";
 const AUTO_SUBMIT = false;
-const AUTO_RELOAD = true;
-const RELOAD_SECONDS = 3;
-const RELOAD_JITTER_MS = 1200;
-
-const TARGET_COURSES = [
-    { code: "CSC10001", cls: "22_1", name: "Sample Course", time: "T2(1-3)" },
-    { code: "ETC10001", cls: "23DTV_CLC1", name: "Sample Lab", time: "T4(7-9)" },
-];
+const AUTO_CONFIRM_REGISTRATION = false;
+const AUTO_RELOAD = false;
+const AUTO_LOGIN = false;
+const AUTO_NAV_TO_DKHP = false;
+const AUTO_DKHP_CAPTCHA_CONTINUE = false;
 ```
 
-| Setting | Meaning | Recommended first value |
-|---|---|---|
-| `START_AT` | Official registration opening time in ISO format with timezone | Set to the announced HCMUS opening time |
-| `AUTO_SUBMIT` | Whether the script clicks the registration button after target selection | `false` for first run |
-| `AUTO_RELOAD` | Whether the script refreshes while waiting | `true` |
-| `RELOAD_SECONDS` | Base reload interval | `3` |
-| `RELOAD_JITTER_MS` | Random delay added to each reload cycle | `1200` |
-| `TARGET_COURSES` | Exact course rows to match | Replace every sample row |
+Then verify `START_AT`, `MAIN_TARGET_COURSES`, every class code and meeting time, `OPTIONAL_RETAKES`, and `TERM_CREDIT_LIMIT` against your current official sources. Enable one automation stage at a time only after a successful review.
 
-## Target Course Format
+### 4. Use one active portal tab
 
-Each target entry should match the row shown by the portal.
+Run the script in only one active HCMUS portal tab. Credentials are shared through Tampermonkey across the 20 official hosts, but browser storage does not provide an atomic cross-host submission lock. Multiple active tabs can therefore race.
+
+### 5. Complete CAPTCHA manually
+
+The user must complete Google reCAPTCHA on the login page and type the HCMUS image CAPTCHA on the registration gate. The script can continue after manual completion when the corresponding switch is enabled; it does not recognize, solve, or bypass either challenge.
+
+## Workflow
+
+1. Confirm that the page is one of the 20 allow-listed HTTPS HCMUS hosts. All other origins remain dry-run.
+2. Wait for the configured opening time and apply jittered reload timing when enabled.
+3. Optionally fill a stored username and password; wait for manual reCAPTCHA completion.
+4. Optionally navigate an authenticated session to `DangKyHocPhan.aspx`.
+5. Pause reloads while the user types the registration CAPTCHA.
+6. Read only verified registration-table rows and checkbox identities.
+7. Require exact course code, class code, timetable, and credit equality.
+8. Build a global non-conflicting plan within the available credit budget.
+9. Roll back script-selected boxes and replan if the portal rejects an option.
+10. Submit through the exact official control, with `0`, `15`, and `45` second retry stages and a hard stop after three attempts for the same combination.
+11. Confirm only the official registration prompt when automatic confirmation is enabled.
+
+## Configuration reference
+
+| Setting | Purpose |
+|---|---|
+| `START_AT` | ISO 8601 registration opening time with explicit UTC offset |
+| `AUTO_SUBMIT` | Click the verified registration button after a valid plan is selected |
+| `AUTO_CONFIRM_REGISTRATION` | Accept only the narrowly matched registration confirmation prompt |
+| `AUTO_RELOAD` | Enable scheduled portal reloads |
+| `RELOAD_SECONDS` | Base reload interval near opening |
+| `RELOAD_JITTER_MS` | Random additional delay that reduces synchronized requests |
+| `AUTO_LOGIN` | Fill stored credentials and continue after manual reCAPTCHA |
+| `AUTO_NAV_TO_DKHP` | Navigate an authenticated portal session to registration |
+| `AUTO_DKHP_CAPTCHA_CONTINUE` | Continue after the user finishes typing the image CAPTCHA |
+| `MAIN_TARGET_COURSES` | Ordered course, class, meeting-time, and credit evidence |
+| `OPTIONAL_RETAKES` | Explicit opt-in retake or improvement targets |
+| `TERM_CREDIT_LIMIT` | Local upper bound; the lower portal-reported limit still wins |
+
+Each target follows this structure:
 
 ```javascript
-{ code: "ETC10001", cls: "23DTV_CLC1", name: "Course Name", time: "T4(7-9)" }
+{
+    code: "COURSE_CODE",
+    name: "Course name for review",
+    credits: 3,
+    options: [
+        { cls: "CLASS_CODE_1", time: "T2(1-3)" },
+        { cls: "CLASS_CODE_2", time: "T4(7-9)" },
+    ],
+}
 ```
 
-| Key | Description |
-|---|---|
-| `code` | Course code shown in the portal course table |
-| `cls` | Class/group code shown in the portal course table |
-| `name` | Human-readable label for your own review |
-| `time` | Schedule fragment that must appear in the row |
+Options are ordered by preference. The planner may omit a course when every available option conflicts, exceeds the remaining credit budget, fails an exact row check, or has already been rejected during the current planning cycle.
 
-Use exact course and class values. Keep the schedule string specific enough to avoid selecting a different row with the same course code.
+## Safety boundaries
 
-## Safety Boundaries
+- **Official origins only:** HTTP, local fixtures, saved HTML, lookalike domains, and hosts outside `new-portal1` to `new-portal20` cannot submit.
+- **Manual CAPTCHA:** no CAPTCHA solving, outsourcing, token reuse, or bypass mechanism is included.
+- **Exact live evidence:** unknown, incomplete, reversed, or out-of-range meeting fragments are treated as conflicts.
+- **Exact controls:** the script recognizes only audited HCMUS checkbox and registration-button identities.
+- **Credit guard:** the configured 25-credit ceiling is never widened; a lower portal-specific limit is honored.
+- **Manual-selection guard:** unexpected checked rows stop automatic submission.
+- **Bounded retries:** one class combination receives at most three submit attempts before a hard stop.
+- **Visible stop control:** **Stop** cancels queued reload, navigation, login, CAPTCHA-continuation, and submission actions. **Reset** is required to resume.
+- **Plain-text credential warning:** optional credentials are stored by Tampermonkey in plain text. Do not use this feature on a shared or untrusted computer.
 
-- The userscript does not solve or bypass CAPTCHA.
-- The userscript does not change HCMUS server behavior.
-- The userscript does not create hidden network requests outside the normal page workflow.
-- The userscript does not store credentials unless `AUTO_LOGIN` is enabled and the user saves them manually.
-- Saved login credentials, when enabled, are stored as plain text in browser `localStorage`; do not use that feature on a shared computer.
-- The default `AUTO_SUBMIT = false` mode is recommended because it keeps human review before final submission.
+## Verification
 
-## Manual Review Checklist
+No package installation is required. From the repository root, run:
 
-Before using the script in a live registration window:
+```powershell
+node --check "tricker/HCMUS Auto DKHP - HK3 23TC Safe-2.0.user.js"
+node tests/userscript-regression.cjs
+git diff --check
+```
 
-1. Confirm the portal URL matches the userscript `@match` patterns.
-2. Confirm `START_AT` matches the official opening time.
-3. Replace the sample `TARGET_COURSES` entries.
-4. Keep `AUTO_SUBMIT = false` for a dry run.
-5. Watch the overlay and confirm that the selected course rows are correct.
-6. Submit manually only after the selected rows are correct.
-7. Use the Stop button in the overlay if the portal state looks different from expected.
+The regression harness currently checks configuration invariants, all 20 official hosts, rejected hosts and protocols, shared credential storage and migration, opening-plan coverage, exact checkbox and button identities, malformed timetables, live-credit mismatch, credit-budget behavior, global rollback and replanning, manual-selection stops, dry-run behavior, CAPTCHA continuation, navigation, confirmation scope, click exceptions, and bounded submit backoff.
+
+These are deterministic source and simulated-DOM checks. They do not constitute a live HCMUS registration or a guarantee that the portal has not changed.
+
+## Repository structure
+
+```text
+.
+|-- assets/
+|   `-- portfolio-motion.svg
+|-- tests/
+|   `-- userscript-regression.cjs
+|-- tricker/
+|   `-- HCMUS Auto DKHP - HK3 23TC Safe-2.0.user.js
+|-- .gitattributes
+|-- .gitignore
+|-- CHANGELOG.md
+|-- LICENSE
+|-- README.md
+`-- RELEASE_NOTES.md
+```
+
+Saved portal pages, CAPTCHA images, ASP.NET state, browser traces, test output, temporary files, personal academic records, and unpublished faculty documents are intentionally excluded from the public repository.
 
 ## Troubleshooting
 
-| Symptom | Likely Cause | Action |
-|---|---|---|
-| The overlay does not appear | The URL did not match the userscript patterns or Tampermonkey is disabled | Check Tampermonkey status and the `@match` rules |
-| The page keeps refreshing before registration opens | `START_AT` is still in the future | Confirm the opening time and timezone |
-| CAPTCHA is visible and refresh stops | This is expected behavior | Complete CAPTCHA manually |
-| No active table is found | The portal has not exposed the registration table yet | Wait or review whether you are on `DangKyHocPhan.aspx` |
-| A target row is not selected | Course code, class or schedule text does not match exactly | Copy values from the portal row into `TARGET_COURSES` |
-| The wrong row is selected | The target schedule string is too broad | Make `time` more specific and keep `AUTO_SUBMIT = false` |
-| Login helper shows a warning | Credentials are stored locally as plain text | Use only on a trusted personal machine or leave `AUTO_LOGIN = false` |
+### The script says that the origin is not official
 
-## FAQ
+Use an HTTPS host from `new-portal1.hcmus.edu.vn` through `new-portal20.hcmus.edu.vn`. Saved pages and local fixtures are intentionally non-operational.
 
-### Does this bypass CAPTCHA?
+### The script does not click a class
 
-No. CAPTCHA remains manual. The script pauses automatic refresh when it detects the CAPTCHA gate.
+Compare the live course code, class code, credit value, and complete timetable with the configured option. A mismatch is a safety stop, not a fuzzy match.
 
-### Does this guarantee registration success?
+### The script cannot read the credit total
 
-No. It only supports the browser-side workflow. Final registration depends on portal availability, course capacity, account permissions and the official registration rules.
+Do not force submission. Reload manually, inspect the registered-course table and portal summary, and confirm that the page layout has not changed.
 
-### Why is automatic submit disabled by default?
+### The login panel cannot save credentials
 
-Manual review is safer. The default behavior selects matching rows but lets the user confirm before submitting.
+Confirm that Tampermonkey granted `GM_getValue`, `GM_setValue`, and `GM_deleteValue`. Storage failures are reported and do not silently fall back to per-origin data.
 
-### Can I use it for different semesters?
+### Automatic actions stopped after an error
 
-Yes, but update `START_AT`, `TARGET_COURSES` and any portal URL changes before each registration period.
+Read the overlay message and the portal response first. Correct the configuration or portal state, then use **Reset** only when retrying is appropriate.
 
-### Why does the code normalize Vietnamese portal text internally?
+### Does the project guarantee registration success?
 
-The HCMUS portal may display Vietnamese headings. The script normalizes page text to ASCII for matching while keeping the source code and user-facing overlay in English.
+No. Seat availability, prerequisites, account eligibility, portal behavior, network conditions, and HCMUS policy remain outside the userscript's control.
 
-### What should an engineering reviewer inspect?
+## Maintainer and contact
 
-Review the matching logic, explicit CAPTCHA boundary, local credential warning, reload scheduling, DOM-table detection and release history. These are the main engineering decisions in the repository.
+**Luong Hai Long** (`22207056`)<br>
+Electronics and Telecommunications, University of Science, Vietnam National University Ho Chi Minh City
 
-## Release and Tagging Notes
+[GitHub](https://github.com/lhlizdabezt) | [LinkedIn](https://www.linkedin.com/in/lhlizdabezt) | [Facebook](https://www.facebook.com/wageseadrake) | [Instagram](https://www.instagram.com/lhlizdabezt) | [YouTube](https://www.youtube.com/@lhlizdabezt) | [TikTok](https://www.tiktok.com/@wageseadrake)
 
-The repository uses GitHub Releases and tags to preserve reviewable snapshots of the userscript, README, release notes and visual assets. The release page is also the stable homepage for portfolio screening.
+Student email: [22207056@student.hcmus.edu.vn](mailto:22207056@student.hcmus.edu.vn)<br>
+Work email: [luonghailong.work@gmail.com](mailto:luonghailong.work@gmail.com)<br>
+Telephone: [+84 988 114 708](tel:+84988114708)
 
-## Portfolio Context
+For defects or portal-compatibility reports, use [GitHub Issues](https://github.com/lhlizdabezt/hcmus-auto-dkhp/issues) and remove credentials, student identifiers, CAPTCHA content, session values, and ASP.NET page state before attaching evidence.
 
-Luong Hai Long maintains this project as a practical browser-automation and workflow-tooling repository. It complements larger portfolio projects in computer vision, AI/ML, network communications, FPGA/SoC and embedded systems by showing small-tool discipline: source hygiene, explicit boundaries, documentation and release packaging.
+## License and responsible use
 
-## Writing Standard
-
-The README uses restrained engineering prose: direct technical nouns, clear project boundaries, release-backed evidence and no inflated claims beyond what the repository can support.
+Released under the [MIT License](LICENSE). This is an independent student engineering project and is not an official HCMUS service. Users are responsible for reviewing the source, following university rules, protecting account data, and verifying every registration result directly on the official portal.

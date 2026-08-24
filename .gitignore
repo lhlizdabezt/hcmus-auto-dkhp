@@ -15,6 +15,8 @@
 !assets/
 !assets/portfolio-motion.svg
 
-# Keep only the reusable userscript.
+# Keep the reusable userscript and its dependency-free regression check.
 !tricker/
 !tricker/HCMUS Auto DKHP - HK3 23TC Safe-2.0.user.js
+!tests/
+!tests/userscript-regression.cjs

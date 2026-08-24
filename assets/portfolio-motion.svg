@@ -1,36 +1,39 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
-  <title id="title">hcmus auto dkhp line-free portfolio visual</title>
-  <desc id="desc">English ASCII-safe SVG visual for hcmus-auto-dkhp without moving connector lines.</desc>
+  <title id="title">HCMUS Auto DKHP version 5.4.0 portfolio visual</title>
+  <desc id="desc">ASCII-only release visual with five animated safety controls and no connector lines.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0f172a" />
-      <stop offset="55%" stop-color="#0f766e" />
-      <stop offset="100%" stop-color="#2563eb" />
+      <stop offset="54%" stop-color="#0f766e" />
+      <stop offset="100%" stop-color="#1d4ed8" />
     </linearGradient>
     <style>
-      .title { font: 800 35px Segoe UI, Arial, sans-serif; fill: #f8fafc; letter-spacing: 0; }
-      .subtitle { font: 650 19px Segoe UI, Arial, sans-serif; fill: #dbeafe; letter-spacing: 0; }
-      .chipText { font: 800 15px Segoe UI, Arial, sans-serif; fill: #0f172a; letter-spacing: 0; }
-      .caption { font: 700 16px Segoe UI, Arial, sans-serif; fill: #e2e8f0; letter-spacing: 0; }
-      .panel { fill: rgba(15,23,42,.54); stroke: rgba(255,255,255,.20); stroke-width: 1.2; }
-      .pulse { animation: pulse 3.4s ease-in-out infinite; transform-origin: center; }
-      .soft { animation: soft 4.8s ease-in-out infinite; transform-origin: center; }
-      @keyframes pulse { 0%, 100% { opacity: .78; transform: scale(.99); } 50% { opacity: 1; transform: scale(1.02); } }
-      @keyframes soft { 0%, 100% { opacity: .68; } 50% { opacity: 1; } }
+      .title { font: 800 37px Segoe UI, Arial, sans-serif; fill: #f8fafc; }
+      .subtitle { font: 650 18px Segoe UI, Arial, sans-serif; fill: #dbeafe; }
+      .chipText { font: 800 15px Segoe UI, Arial, sans-serif; fill: #0f172a; }
+      .caption { font: 700 16px Segoe UI, Arial, sans-serif; fill: #e2e8f0; }
+      .panel { fill: rgba(15,23,42,.55); stroke: rgba(255,255,255,.22); stroke-width: 1.2; }
+      .chip { animation: pulse 4.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+      .s2 { animation-delay: .35s; }
+      .s3 { animation-delay: .70s; }
+      .s4 { animation-delay: 1.05s; }
+      .s5 { animation-delay: 1.40s; }
+      @keyframes pulse {
+        0%, 100% { opacity: .80; transform: scale(.985); }
+        45%, 55% { opacity: 1; transform: scale(1.015); }
+      }
     </style>
   </defs>
   <rect width="1200" height="360" rx="26" fill="url(#bg)" />
   <rect x="38" y="34" width="1124" height="292" rx="22" class="panel" />
-  <text x="72" y="66" class="title">HCMUS Course Registration Userscript</text>
-  <text x="72" y="96" class="subtitle">Tampermonkey workflow support with scheduled reload, exact row</text>
-  <text x="72" y="124" class="subtitle">matching, manual CAPTCHA boundaries and review-first submission.</text>
-  <g>
-    <g class="pulse"><rect x="76" y="248" width="190" height="48" rx="16" fill="#e0f2fe" /><text x="171" y="278" text-anchor="middle" class="chipText">Course Rows</text></g>
-    <g class="pulse"><rect x="286" y="248" width="190" height="48" rx="16" fill="#dcfce7" /><text x="381" y="278" text-anchor="middle" class="chipText">HCMUS Portal</text></g>
-    <g class="pulse"><rect x="496" y="248" width="190" height="48" rx="16" fill="#fef9c3" /><text x="591" y="278" text-anchor="middle" class="chipText">JavaScript</text></g>
-    <g class="pulse"><rect x="706" y="248" width="190" height="48" rx="16" fill="#fee2e2" /><text x="801" y="278" text-anchor="middle" class="chipText">Tampermonkey</text></g>
-    <g class="pulse"><rect x="916" y="248" width="210" height="48" rx="16" fill="#dbeafe" /><text x="1021" y="278" text-anchor="middle" class="chipText">Manual CAPTCHA</text></g>
-  </g>
-  <rect x="72" y="304" width="1056" height="28" rx="14" fill="rgba(15,23,42,.58)" />
-  <text x="600.0" y="323" text-anchor="middle" class="caption">English visual asset - no connector lines - release-backed userscript evidence</text>
+  <text x="72" y="78" class="title">HCMUS Auto DKHP v5.4.0</text>
+  <text x="72" y="112" class="subtitle">Fail-closed course registration support for official HCMUS portal hosts.</text>
+  <text x="72" y="140" class="subtitle">Exact live evidence, manual CAPTCHA, bounded retries, and visible stops.</text>
+  <g class="chip s1"><rect x="76" y="226" width="190" height="50" rx="16" fill="#e0f2fe" /><text x="171" y="257" text-anchor="middle" class="chipText">Manual CAPTCHA</text></g>
+  <g class="chip s2"><rect x="286" y="226" width="190" height="50" rx="16" fill="#dcfce7" /><text x="381" y="257" text-anchor="middle" class="chipText">Exact Match</text></g>
+  <g class="chip s3"><rect x="496" y="226" width="190" height="50" rx="16" fill="#fef9c3" /><text x="591" y="257" text-anchor="middle" class="chipText">Credit Guard</text></g>
+  <g class="chip s4"><rect x="706" y="226" width="190" height="50" rx="16" fill="#fee2e2" /><text x="801" y="257" text-anchor="middle" class="chipText">Submit Backoff</text></g>
+  <g class="chip s5"><rect x="916" y="226" width="210" height="50" rx="16" fill="#dbeafe" /><text x="1021" y="257" text-anchor="middle" class="chipText">Stop and Reset</text></g>
+  <rect x="72" y="292" width="1056" height="30" rx="15" fill="rgba(15,23,42,.60)" />
+  <text x="600" y="313" text-anchor="middle" class="caption">JavaScript / Tampermonkey / 29 regression checks / no connector lines</text>
 </svg>
